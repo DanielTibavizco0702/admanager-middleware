@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse
 import requests
 import os
 
@@ -25,18 +25,43 @@ def buscar_usuario(usuario: str):
         data = response.json()
 
         if data.get("count", 0) == 0 or data.get("status") != "SUCCESS":
-            return PlainTextResponse("❌ El usuario no fue encontrado. Verifica el nombre o contacta a soporte.")
+            return JSONResponse(
+                content={
+                    "messages": [
+                        {
+                            "type": "to_user",
+                            "content": "❌ El usuario no fue encontrado. Verifica el nombre o contacta a soporte."
+                        }
+                    ]
+                }
+            )
 
         user = data["UsersList"][0]
 
-        # Mensaje ya formateado para el bot
-        return PlainTextResponse(
-            content=(
-                f"Hola {usuario}, encontramos tu perfil:\n\n"
-                f"👤 Nombre: {user.get('FIRST_NAME', '')}\n"
-                f"📛 Nombre para mostrar: {user.get('DISPLAY_NAME', '')}"
-            )
+        return JSONResponse(
+            content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": (
+                            f"✅ Usuario encontrado:\n\n"
+                            f"👤 Nombre: {user.get('FIRST_NAME', '')}\n"
+                            f"📛 Display Name: {user.get('DISPLAY_NAME', '')}"
+                        )
+                    }
+                ]
+            }
         )
 
     except Exception as e:
-        return PlainTextResponse(f"⚠️ Error del servidor: {str(e)}")
+        return JSONResponse(
+            content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": f"⚠️ Error del servidor: {str(e)}"
+                    }
+                ]
+            },
+            status_code=500
+        )

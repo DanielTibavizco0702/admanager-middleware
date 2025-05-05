@@ -70,7 +70,8 @@ def buscar_usuario(usuario: str):
 
 @app.get("/cambiar-password")
 def cambiar_password(usuario: str, nueva_password: str):
-    # Construimos la URL correcta para la API ResetPwd
+    import json  # agregar si no está arriba
+
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
     params = {

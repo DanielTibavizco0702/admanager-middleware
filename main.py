@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import PlainTextResponse
 import requests
 import os
 
@@ -25,24 +25,18 @@ def buscar_usuario(usuario: str):
         data = response.json()
 
         if data.get("count", 0) == 0 or data.get("status") != "SUCCESS":
-            return JSONResponse(
-                content={"ok": False, "message": "Usuario no encontrado"},
-                status_code=200
-            )
+            return PlainTextResponse("❌ El usuario no fue encontrado. Verifica el nombre o contacta a soporte.")
 
         user = data["UsersList"][0]
 
-        return JSONResponse(
-            content={
-                "ok": True,
-                "first_name": user.get("FIRST_NAME", ""),
-                "display_name": user.get("DISPLAY_NAME", "")
-            },
-            status_code=200
+        # Mensaje ya formateado para el bot
+        return PlainTextResponse(
+            content=(
+                f"Hola {usuario}, encontramos tu perfil:\n\n"
+                f"👤 Nombre: {user.get('FIRST_NAME', '')}\n"
+                f"📛 Nombre para mostrar: {user.get('DISPLAY_NAME', '')}"
+            )
         )
 
     except Exception as e:
-        return JSONResponse(
-            content={"ok": False, "message": f"Error: {str(e)}"},
-            status_code=500
-        )
+        return PlainTextResponse(f"⚠️ Error del servidor: {str(e)}")

@@ -36,8 +36,10 @@ def buscar_usuario(usuario: str):
         return JSONResponse(
             content={
                 "ok": True,
-                "first_name": user.get("FIRST_NAME", ""),
-                "display_name": user.get("DISPLAY_NAME", "")
+                "data": {
+                    "first_name": user.get("FIRST_NAME", ""),
+                    "display_name": user.get("DISPLAY_NAME", "")
+                }
             },
             status_code=200
         )
@@ -47,3 +49,4 @@ def buscar_usuario(usuario: str):
             content={"ok": False, "message": f"Error: {str(e)}"},
             status_code=500
         )
+

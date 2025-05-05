@@ -88,31 +88,22 @@ def cambiar_password(usuario: str, nueva_password: str):
         response = requests.post(reset_url, headers=headers, params=params, timeout=10)
         result = response.json()
 
-        if result.get("status") == "Success":
-            return JSONResponse(content={
-                "messages": [
-                    {
-                        "type": "to_user",
-                        "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
-                    }
-                ]
-            })
-        else:
-            return JSONResponse(content={
-                "messages": [
-                    {
-                        "type": "to_user",
-                        "content": f"❌ Error al cambiar la contraseña: {result.get('statusMessage', 'Desconocido')}."
-                    }
-                ]
-            })
-
-    except Exception as e:
-        return JSONResponse(content={
-            "messages": [
-                {
-                    "type": "to_user",
-                    "content": f"⚠️ Error del servidor: {str(e)}"
-                }
-            ]
-        }, status_code=500)
+# Validar que sea lista y tenga al menos un objeto
+if isinstance(result, list) and result[0].get("status") == "1":
+    return JSONResponse(content={
+        "messages": [
+            {
+                "type": "to_user",
+                "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
+            }
+        ]
+    })
+else:
+    return JSONResponse(content={
+        "messages": [
+            {
+                "type": "to_user",
+                "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
+            }
+        ]
+    })

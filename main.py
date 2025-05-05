@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 import requests
+import os  # Importa el módulo os para leer variables de entorno
 
 app = FastAPI()
 
-ADMANAGER_URL = "https://proyecto.melabs.tech:8443/RestAPI/SearchUser"
-AUTH_TOKEN = "d894b0a9-7c9a-4c89-85e6-4cc97fa695ed"
-DOMAIN_NAME = "cybersex.com"
+# Leer variables de entorno definidas en Render
+ADMANAGER_URL = os.getenv("ADMANAGER_URL")
+AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
+DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
+
 
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):

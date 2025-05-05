@@ -70,20 +70,22 @@ def buscar_usuario(usuario: str):
 
 @app.get("/cambiar-password")
 def cambiar_password(usuario: str, nueva_password: str):
-    import json  # agregar si no está arriba
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
 
-    reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
+    reset_url = "https://proyecto.melabs.tech:8443/RestAPI/ResetPwd"
 
     params = {
-        "AuthToken": AUTH_TOKEN,
-        "PRODUCT_NAME": "ADManager Plus",
-        "domainName": DOMAIN_NAME,
+        "AuthToken": "acbbc9ca-ad78-4339-8ce3-777a4cfb7523",
+        "PRODUCT_NAME": "proyecto.melabs.tech:8443",
+        "domainName": "cybersex.com",
         "pwd": nueva_password,
-        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
+        "inputFormat": f'[{{"sAMAccountName":"{usuario}"}}]'
     }
 
     try:
-        response = requests.post(reset_url, params=params, timeout=10)
+        response = requests.post(reset_url, headers=headers, params=params, timeout=10)
         result = response.json()
 
         if result.get("status") == "Success":

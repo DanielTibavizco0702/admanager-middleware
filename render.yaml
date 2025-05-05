@@ -1,0 +1,16 @@
+
+services:
+  - type: web
+    name: admanager-middleware
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: ADMANAGER_URL
+        value: https://proyecto.melabs.tech:8443/RestAPI/SearchUser
+      - key: ADMANAGER_TOKEN
+        value: d894b0a9-7c9a-4c89-85e6-4cc97fa695ed
+      - key: ADMANAGER_DOMAIN
+        value: cybersex.com
+    autoDeploy: true

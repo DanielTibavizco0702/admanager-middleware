@@ -70,40 +70,48 @@ def buscar_usuario(usuario: str):
 
 @app.get("/cambiar-password")
 def cambiar_password(usuario: str, nueva_password: str):
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    import json
 
-    reset_url = "https://proyecto.melabs.tech:8443/RestAPI/ResetPwd"
+    reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
     params = {
-        "AuthToken": "acbbc9ca-ad78-4339-8ce3-777a4cfb7523",
-        "PRODUCT_NAME": "proyecto.melabs.tech:8443",
-        "domainName": "cybersex.com",
+        "AuthToken": AUTH_TOKEN,
+        "PRODUCT_NAME": "ADManager Plus",
+        "domainName": DOMAIN_NAME,
         "pwd": nueva_password,
-        "inputFormat": f'[{{"sAMAccountName":"{usuario}"}}]'
+        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
     }
 
     try:
-        response = requests.post(reset_url, headers=headers, params=params, timeout=10)
+        response = requests.post(reset_url, params=params, timeout=10)
         result = response.json()
 
-# Validar que sea lista y tenga al menos un objeto
-if isinstance(result, list) and result[0].get("status") == "1":
-    return JSONResponse(content={
-        "messages": [
-            {
-                "type": "to_user",
-                "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
-            }
-        ]
-    })
-else:
-    return JSONResponse(content={
-        "messages": [
-            {
-                "type": "to_user",
-                "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
-            }
-        ]
-    })
+        # Verificamos que la respuesta sea una lista y que el status sea "1" (éxito)
+        if isinstance(result, list) and result[0].get("status") == "1":
+            return JSONResponse(content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
+                    }
+                ]
+            })
+        else:
+            return JSONResponse(content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
+                    }
+                ]
+            })
+
+    except Exception as e:
+        return JSONResponse(content={
+            "messages": [
+                {
+                    "type": "to_user",
+                    "content": f"⚠️ Error del servidor: {str(e)}"
+                }
+            ]
+        }, status_code=500)

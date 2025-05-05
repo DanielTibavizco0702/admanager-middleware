@@ -9,6 +9,7 @@ ADMANAGER_URL = os.getenv("ADMANAGER_URL")
 AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
 DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
 
+
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):
     params = {
@@ -65,3 +66,50 @@ def buscar_usuario(usuario: str):
             },
             status_code=500
         )
+
+
+@app.get("/cambiar-password")
+def cambiar_password(usuario: str, nueva_password: str):
+    # Construimos la URL correcta para la API ResetPwd
+    reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
+
+    params = {
+        "AuthToken": AUTH_TOKEN,
+        "PRODUCT_NAME": "ADManager Plus",
+        "domainName": DOMAIN_NAME,
+        "pwd": nueva_password,
+        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
+    }
+
+    try:
+        response = requests.post(reset_url, params=params, timeout=10)
+        result = response.json()
+
+        if result.get("status") == "Success":
+            return JSONResponse(content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
+                    }
+                ]
+            })
+        else:
+            return JSONResponse(content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": f"❌ Error al cambiar la contraseña: {result.get('statusMessage', 'Desconocido')}."
+                    }
+                ]
+            })
+
+    except Exception as e:
+        return JSONResponse(content={
+            "messages": [
+                {
+                    "type": "to_user",
+                    "content": f"⚠️ Error del servidor: {str(e)}"
+                }
+            ]
+        }, status_code=500)

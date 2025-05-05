@@ -5,11 +5,9 @@ import os
 
 app = FastAPI()
 
-# Leer variables de entorno desde Render
 ADMANAGER_URL = os.getenv("ADMANAGER_URL")
 AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
 DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
-
 
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):
@@ -33,13 +31,12 @@ def buscar_usuario(usuario: str):
             )
 
         user = data["UsersList"][0]
+
         return JSONResponse(
             content={
                 "ok": True,
-                "data": {
-                    "first_name": user.get("FIRST_NAME", ""),
-                    "display_name": user.get("DISPLAY_NAME", "")
-                }
+                "first_name": user.get("FIRST_NAME", ""),
+                "display_name": user.get("DISPLAY_NAME", "")
             },
             status_code=200
         )
@@ -49,4 +46,3 @@ def buscar_usuario(usuario: str):
             content={"ok": False, "message": f"Error: {str(e)}"},
             status_code=500
         )
-

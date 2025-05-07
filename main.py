@@ -65,7 +65,7 @@ def cambiar_password(usuario: str, nueva_password: str):
             )
 
         user = data["UsersList"][0]
-        correo = user.get("EMAIL", "")
+        correo = user.get("EMAIL_ADDRESS", "")
         if not correo:
             return JSONResponse(
                 content={"messages": [{"type": "to_user", "content": "❌ El usuario no tiene correo configurado."}],

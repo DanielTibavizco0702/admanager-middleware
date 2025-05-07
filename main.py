@@ -72,9 +72,11 @@ def buscar_usuario(usuario: str):
 def cambiar_password(usuario: str, nueva_password: str):
     import json
 
+    # Cambia la URL si es necesario o mantenla si ADMANAGER_URL tiene /SearchUser
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
-    params = {
+    # Usa data en lugar de params
+    data = {
         "AuthToken": AUTH_TOKEN,
         "PRODUCT_NAME": "ADManager Plus",
         "domainName": DOMAIN_NAME,
@@ -82,11 +84,17 @@ def cambiar_password(usuario: str, nueva_password: str):
         "inputFormat": json.dumps([{"sAMAccountName": usuario}])
     }
 
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
     try:
-        response = requests.post(reset_url, params=params, timeout=10)
+        # Usa data y headers correctamente
+        response = requests.post(reset_url, data=data, headers=headers, timeout=10)
         result = response.json()
 
-        # Verificamos que la respuesta sea una lista y que el status sea "1" (éxito)
+        print("DEBUG CAMBIO PASSWORD:", result)  # Para depuración
+
         if isinstance(result, list) and result[0].get("status") == "1":
             return JSONResponse(content={
                 "messages": [
@@ -94,17 +102,27 @@ def cambiar_password(usuario: str, nueva_password: str):
                         "type": "to_user",
                         "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
                     }
-                ]
+                ],
+                "status": "ok"
             })
+
+        mensaje_error = result[0].get("statusMessage", "").lower()
+
+        if "no such user matched" in mensaje_error:
+            motivo = "usuario_no_encontrado"
         else:
-            return JSONResponse(content={
-                "messages": [
-                    {
-                        "type": "to_user",
-                        "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
-                    }
-                ]
-            })
+            motivo = "cambio_password_fallido"
+
+        return JSONResponse(content={
+            "messages": [
+                {
+                    "type": "to_user",
+                    "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
+                }
+            ],
+            "status": "error",
+            "motivo_error": motivo
+        })
 
     except Exception as e:
         return JSONResponse(content={
@@ -113,5 +131,7 @@ def cambiar_password(usuario: str, nueva_password: str):
                     "type": "to_user",
                     "content": f"⚠️ Error del servidor: {str(e)}"
                 }
-            ]
+            ],
+            "status": "error",
+            "motivo_error": "error_servidor"
         }, status_code=500)

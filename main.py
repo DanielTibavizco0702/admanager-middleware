@@ -115,5 +115,3 @@ def cambiar_password(usuario: str, nueva_password: str):
                 }
             ]
         }, status_code=500)
-        }, status_code=500)
-

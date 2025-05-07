@@ -33,7 +33,9 @@ def buscar_usuario(usuario: str):
                             "type": "to_user",
                             "content": "❌ El usuario no fue encontrado. Verifica el nombre o contacta a soporte."
                         }
-                    ]
+                    ],
+                    "status": "error",
+                    "motivo_error": "usuario_no_encontrado"
                 }
             )
 
@@ -50,7 +52,8 @@ def buscar_usuario(usuario: str):
                             f"📛 Display Name: {user.get('DISPLAY_NAME', '')}"
                         )
                     }
-                ]
+                ],
+                "status": "ok"
             }
         )
 
@@ -62,7 +65,9 @@ def buscar_usuario(usuario: str):
                         "type": "to_user",
                         "content": f"⚠️ Error del servidor: {str(e)}"
                     }
-                ]
+                ],
+                "status": "error",
+                "motivo_error": "error_servidor"
             },
             status_code=500
         )
@@ -86,7 +91,6 @@ def cambiar_password(usuario: str, nueva_password: str):
         response = requests.post(reset_url, params=params, timeout=10)
         result = response.json()
 
-        # Verificamos que la respuesta sea una lista y que el status sea "1" (éxito)
         if isinstance(result, list) and result[0].get("status") == "1":
             return JSONResponse(content={
                 "messages": [
@@ -94,7 +98,8 @@ def cambiar_password(usuario: str, nueva_password: str):
                         "type": "to_user",
                         "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
                     }
-                ]
+                ],
+                "status": "ok"
             })
         else:
             return JSONResponse(content={
@@ -103,7 +108,9 @@ def cambiar_password(usuario: str, nueva_password: str):
                         "type": "to_user",
                         "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
                     }
-                ]
+                ],
+                "status": "error",
+                "motivo_error": "cambio_password_fallido"
             })
 
     except Exception as e:
@@ -113,5 +120,7 @@ def cambiar_password(usuario: str, nueva_password: str):
                     "type": "to_user",
                     "content": f"⚠️ Error del servidor: {str(e)}"
                 }
-            ]
+            ],
+            "status": "error",
+            "motivo_error": "error_servidor"
         }, status_code=500)

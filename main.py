@@ -101,24 +101,24 @@ def cambiar_password(usuario: str, nueva_password: str):
                 ],
                 "status": "ok"
             })
-     else:
-    mensaje_error = result[0].get("statusMessage", "").lower()
+        else:
+            mensaje_error = result[0].get("statusMessage", "").lower()
 
-    if "no such user matched" in mensaje_error:
-        motivo = "usuario_no_encontrado"
-    else:
-        motivo = "cambio_password_fallido"
+            if "no such user matched" in mensaje_error:
+                motivo = "usuario_no_encontrado"
+            else:
+                motivo = "cambio_password_fallido"
 
-    return JSONResponse(content={
-        "messages": [
-            {
-                "type": "to_user",
-                "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
-            }
-        ],
-        "status": "error",
-        "motivo_error": motivo
-    })
+            return JSONResponse(content={
+                "messages": [
+                    {
+                        "type": "to_user",
+                        "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
+                    }
+                ],
+                "status": "error",
+                "motivo_error": motivo
+            })
 
     except Exception as e:
         return JSONResponse(content={

@@ -20,4 +20,4 @@ services:
       - key: SMTP_USER
         value: admananger665@gmail.com
       - key: SMTP_PASSWORD
-        value: uutl xitf iibe bmpg
+        value: uutlxitfiibebmpg

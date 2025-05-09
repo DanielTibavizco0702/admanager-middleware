@@ -1,6 +1,7 @@
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import requests
 import os
 import json
@@ -11,6 +12,9 @@ ADMANAGER_URL = os.getenv("ADMANAGER_URL")
 AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
 DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
 
+class CambioPasswordRequest(BaseModel):
+    usuario: str
+    nueva_password: str
 
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):
@@ -70,15 +74,17 @@ def buscar_usuario(usuario: str):
         )
 
 
-@app.get("/cambiar-password")
-def cambiar_password(usuario: str, nueva_password: str):
+@app.post("/cambiar-password")
+def cambiar_password(data: CambioPasswordRequest):
+    usuario = data.usuario
+    nueva_password = data.nueva_password
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
-    data = {
+    payload = {
         "AuthToken": AUTH_TOKEN,
         "PRODUCT_NAME": "ADManager Plus",
         "domainName": DOMAIN_NAME,
-        "pwd": nueva_password,  # Contraseña sin codificar
+        "pwd": nueva_password,
         "inputFormat": json.dumps([{"sAMAccountName": usuario}])
     }
 
@@ -87,7 +93,7 @@ def cambiar_password(usuario: str, nueva_password: str):
     }
 
     try:
-        response = requests.post(reset_url, data=data, headers=headers, timeout=10)
+        response = requests.post(reset_url, data=payload, headers=headers, timeout=10)
         result = response.json()
 
         print("DEBUG CAMBIO PASSWORD:", result)
@@ -134,3 +140,4 @@ def cambiar_password(usuario: str, nueva_password: str):
             "status": "error",
             "motivo_error": "error_servidor"
         }, status_code=500)
+

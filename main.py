@@ -37,7 +37,7 @@ def enviar_otp(destinatario, otp):
     msg = EmailMessage()
     msg.set_content(f"Tu código de verificación es: {otp}")
     msg["Subject"] = "Verificación de identidad"
-    msg["From"] = f"<{SMTP_USER}>"
+    msg["From"] = f"<{SMTP_USER.strip()}>"
     msg["To"] = destinatario.strip()
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:

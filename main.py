@@ -72,10 +72,8 @@ def buscar_usuario(usuario: str):
 def cambiar_password(usuario: str, nueva_password: str):
     import json
 
-    # Cambia la URL si es necesario o mantenla si ADMANAGER_URL tiene /SearchUser
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
-    # Usa data en lugar de params
     data = {
         "AuthToken": AUTH_TOKEN,
         "PRODUCT_NAME": "ADManager Plus",
@@ -89,11 +87,10 @@ def cambiar_password(usuario: str, nueva_password: str):
     }
 
     try:
-        # Usa data y headers correctamente
         response = requests.post(reset_url, data=data, headers=headers, timeout=10)
         result = response.json()
 
-        print("DEBUG CAMBIO PASSWORD:", result)  # Para depuración
+        print("DEBUG CAMBIO PASSWORD:", result)
 
         if isinstance(result, list) and result[0].get("status") == "1":
             return JSONResponse(content={
@@ -110,25 +107,21 @@ def cambiar_password(usuario: str, nueva_password: str):
 
         if "no such user matched" in mensaje_error:
             motivo = "usuario_no_encontrado"
+            mensaje_mostrar = f"❌ Error al cambiar la contraseña para el usuario {usuario}. Verifica el nombre o contacta a soporte."
         else:
             motivo = "cambio_password_fallido"
+            mensaje_mostrar = "❌ Error al cambiar la contraseña. Inténtalo de nuevo o contacta a soporte."
 
-     if motivo == "usuario_no_encontrado":
-    mensaje_mostrar = f"❌ Error al cambiar la contraseña para el usuario {usuario}. Verifica el nombre o contacta a soporte."
-else:
-    mensaje_mostrar = "❌ Error al cambiar la contraseña. Inténtalo de nuevo o contacta a soporte."
-
-return JSONResponse(content={
-    "messages": [
-        {
-            "type": "to_user",
-            "content": mensaje_mostrar
-        }
-    ],
-    "status": "error",
-    "motivo_error": motivo
-})
-
+        return JSONResponse(content={
+            "messages": [
+                {
+                    "type": "to_user",
+                    "content": mensaje_mostrar
+                }
+            ],
+            "status": "error",
+            "motivo_error": motivo
+        })
 
     except Exception as e:
         return JSONResponse(content={
@@ -141,4 +134,3 @@ return JSONResponse(content={
             "status": "error",
             "motivo_error": "error_servidor"
         }, status_code=500)
-

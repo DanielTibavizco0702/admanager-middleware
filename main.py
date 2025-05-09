@@ -113,16 +113,22 @@ def cambiar_password(usuario: str, nueva_password: str):
         else:
             motivo = "cambio_password_fallido"
 
-        return JSONResponse(content={
-            "messages": [
-                {
-                    "type": "to_user",
-                    "content": f"❌ Error al cambiar la contraseña: {result[0].get('statusMessage', 'Desconocido')}."
-                }
-            ],
-            "status": "error",
-            "motivo_error": motivo
-        })
+     if motivo == "usuario_no_encontrado":
+    mensaje_mostrar = f"❌ Error al cambiar la contraseña para el usuario {usuario}. Verifica el nombre o contacta a soporte."
+else:
+    mensaje_mostrar = "❌ Error al cambiar la contraseña. Inténtalo de nuevo o contacta a soporte."
+
+return JSONResponse(content={
+    "messages": [
+        {
+            "type": "to_user",
+            "content": mensaje_mostrar
+        }
+    ],
+    "status": "error",
+    "motivo_error": motivo
+})
+
 
     except Exception as e:
         return JSONResponse(content={

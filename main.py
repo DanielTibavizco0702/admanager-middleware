@@ -68,17 +68,21 @@ def buscar_usuario(usuario: str):
         )
 
 
+from urllib.parse import quote_plus
+
 @app.get("/cambiar-password")
 def cambiar_password(usuario: str, nueva_password: str):
     import json
 
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
+    password_codificada = quote_plus(nueva_password)  # ✅ Codifica caracteres especiales
+
     data = {
         "AuthToken": AUTH_TOKEN,
         "PRODUCT_NAME": "ADManager Plus",
         "domainName": DOMAIN_NAME,
-        "pwd": nueva_password,
+        "pwd": password_codificada,
         "inputFormat": json.dumps([{"sAMAccountName": usuario}])
     }
 

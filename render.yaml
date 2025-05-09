@@ -1,4 +1,5 @@
-services:
+
+        services:
   - type: web
     name: admanager-middleware
     env: python
@@ -14,10 +15,10 @@ services:
       - key: ADMANAGER_DOMAIN
         value: cybersex.com
       - key: SMTP_SERVER
-        value: smtp.gmail.com
+        value: smtp-relay.brevo.com
       - key: SMTP_PORT
         value: "587"
       - key: SMTP_USER
-        value: admananger665@gmail.com
+        value: 8c9a2e001@smtp-brevo.com
       - key: SMTP_PASSWORD
-        value: uutlxitfiibebmpg
+        value: 4f8xqO6HZzNnhcb0

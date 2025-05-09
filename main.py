@@ -17,7 +17,7 @@ AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
 DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
 
 # Ahora toma las variables SMTP desde el entorno (render.yaml)
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp-relay.brevo.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")

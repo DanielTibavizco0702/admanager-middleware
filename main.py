@@ -3,8 +3,12 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import requests
+import smtplib
+from email.message import EmailMessage
 import os
 import json
+import random
+import time
 
 app = FastAPI()
 
@@ -12,12 +16,100 @@ ADMANAGER_URL = os.getenv("ADMANAGER_URL")
 AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
 DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
 
+SMTP_SERVER = "smtp.office365.com"
+SMTP_PORT = 587
+SMTP_USER = "SMTP.LATAM@melabs.onmicrosoft.com"
+SMTP_PASSWORD = "TU_CONTRASEÑA_AQUI"
+
+otp_storage = {}
+usuarios_validados = {}
+EXPIRACION_OTP = 300  # 5 minutos
+
 class CambioPasswordRequest(BaseModel):
     usuario: str
     nueva_password: str
 
+class VerificarOTP(BaseModel):
+    usuario: str
+    otp: str
+
+def enviar_otp(destinatario, otp):
+    msg = EmailMessage()
+    msg.set_content(f"Tu código de verificación es: {otp}")
+    msg["Subject"] = "Verificación de identidad"
+    msg["From"] = SMTP_USER
+    msg["To"] = destinatario
+    with smtpllib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.send_message(msg)
+
+@app.get("/iniciar-mfa")
+def iniciar_mfa(usuario: str):
+    params = {
+        "domainName": DOMAIN_NAME,
+        "AuthToken": AUTH_TOKEN,
+        "range": "1",
+        "startIndex": "1",
+        "filter": f"(sAMAccountName:equal:{usuario})",
+        "select": "mail"
+    }
+
+    try:
+        response = requests.get(ADMANAGER_URL, params=params, timeout=10)
+        data = response.json()
+
+        if data.get("count", 0) == 0 or data.get("status") != "SUCCESS":
+            return JSONResponse(content={
+                "messages": [{"type": "to_user", "content": "❌ Usuario no encontrado."}],
+                "status": "error"
+            })
+
+        correo = data["UsersList"][0].get("EMAIL_ADDRESS", "")
+        if not correo:
+            return JSONResponse(content={
+                "messages": [{"type": "to_user", "content": "❌ El usuario no tiene correo configurado."}],
+                "status": "error"
+            })
+
+        otp = str(random.randint(100000, 999999))
+        otp_storage[usuario] = {"otp": otp, "timestamp": time.time()}
+        enviar_otp(correo, otp)
+
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": "📧 Se ha enviado un código de verificación a tu correo."}],
+            "status": "otp_enviado"
+        })
+
+    except Exception as e:
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
+            "status": "error"
+        }, status_code=500)
+
+@app.post("/verificar-otp")
+def verificar_otp(data: VerificarOTP):
+    entrada = otp_storage.get(data.usuario)
+    if not entrada:
+        return {"status": "error", "mensaje": "No se encontró un OTP para este usuario"}
+
+    if time.time() - entrada["timestamp"] > EXPIRACION_OTP:
+        otp_storage.pop(data.usuario)
+        return {"status": "error", "mensaje": "OTP expirado"}
+
+    if data.otp != entrada["otp"]:
+        return {"status": "error", "mensaje": "Código incorrecto"}
+
+    usuarios_validados[data.usuario] = True
+    otp_storage.pop(data.usuario)
+
+    return {"status": "ok", "mensaje": "✅ Verificación exitosa. Puedes continuar."}
+
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):
+    if not usuarios_validados.get(usuario):
+        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
+
     params = {
         "domainName": DOMAIN_NAME,
         "AuthToken": AUTH_TOKEN,
@@ -32,51 +124,26 @@ def buscar_usuario(usuario: str):
         data = response.json()
 
         if data.get("count", 0) == 0 or data.get("status") != "SUCCESS":
-            return JSONResponse(
-                content={
-                    "messages": [
-                        {
-                            "type": "to_user",
-                            "content": "❌ El usuario no fue encontrado. Verifica el nombre o contacta a soporte."
-                        }
-                    ]
-                }
-            )
+            return JSONResponse(content={
+                "messages": [{"type": "to_user", "content": "❌ El usuario no fue encontrado."}]
+            })
 
         user = data["UsersList"][0]
-
-        return JSONResponse(
-            content={
-                "messages": [
-                    {
-                        "type": "to_user",
-                        "content": (
-                            f"✅ Usuario encontrado:\n\n"
-                            f"👤 Nombre: {user.get('FIRST_NAME', '')}\n"
-                            f"📛 Display Name: {user.get('DISPLAY_NAME', '')}"
-                        )
-                    }
-                ]
-            }
-        )
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": f"✅ Usuario encontrado:\n\n👤 Nombre: {user.get('FIRST_NAME', '')}\n📛 Display Name: {user.get('DISPLAY_NAME', '')}"}]
+        })
 
     except Exception as e:
-        return JSONResponse(
-            content={
-                "messages": [
-                    {
-                        "type": "to_user",
-                        "content": f"⚠️ Error del servidor: {str(e)}"
-                    }
-                ]
-            },
-            status_code=500
-        )
-
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}]
+        }, status_code=500)
 
 @app.post("/cambiar-password")
 def cambiar_password(data: CambioPasswordRequest):
     usuario = data.usuario
+    if not usuarios_validados.get(usuario):
+        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
+
     nueva_password = data.nueva_password
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
@@ -96,48 +163,25 @@ def cambiar_password(data: CambioPasswordRequest):
         response = requests.post(reset_url, data=payload, headers=headers, timeout=10)
         result = response.json()
 
-        print("DEBUG CAMBIO PASSWORD:", result)
-
         if isinstance(result, list) and result[0].get("status") == "1":
             return JSONResponse(content={
-                "messages": [
-                    {
-                        "type": "to_user",
-                        "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."
-                    }
-                ],
+                "messages": [{"type": "to_user", "content": f"✅ Contraseña actualizada correctamente para el usuario {usuario}."}],
                 "status": "ok"
             })
 
         mensaje_error = result[0].get("statusMessage", "").lower()
-
         if "no such user matched" in mensaje_error:
-            motivo = "usuario_no_encontrado"
-            mensaje_mostrar = f"❌ Error al cambiar la contraseña para el usuario {usuario}. Verifica el nombre o contacta a soporte."
+            mensaje = f"❌ Error al cambiar la contraseña para el usuario {usuario}. Verifica el nombre o contacta a soporte."
         else:
-            motivo = "cambio_password_fallido"
-            mensaje_mostrar = "❌ Error al cambiar la contraseña. Inténtalo de nuevo o contacta a soporte."
+            mensaje = "❌ Error al cambiar la contraseña. Inténtalo de nuevo o contacta a soporte."
 
         return JSONResponse(content={
-            "messages": [
-                {
-                    "type": "to_user",
-                    "content": mensaje_mostrar
-                }
-            ],
-            "status": "error",
-            "motivo_error": motivo
+            "messages": [{"type": "to_user", "content": mensaje}],
+            "status": "error"
         })
 
     except Exception as e:
         return JSONResponse(content={
-            "messages": [
-                {
-                    "type": "to_user",
-                    "content": f"⚠️ Error del servidor: {str(e)}"
-                }
-            ],
-            "status": "error",
-            "motivo_error": "error_servidor"
+            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
+            "status": "error"
         }, status_code=500)
-

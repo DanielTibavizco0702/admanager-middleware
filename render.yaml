@@ -14,3 +14,14 @@ services:
       - key: ADMANAGER_DOMAIN
         value: cybersex.com
     autoDeploy: true
+- key: SMTP_SERVER
+  value: smtp.gmail.com
+
+- key: SMTP_PORT
+  value: 587
+
+- key: SMTP_USER
+  value: admananger665@gmail.com
+
+- key: SMTP_PASSWORD
+  value: rpcd eulz gqdn zhgc

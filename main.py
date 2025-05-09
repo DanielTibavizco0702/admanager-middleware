@@ -21,19 +21,12 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
-# Validación de entorno SMTP
-missing = []
-for key, value in {
-    "SMTP_SERVER": SMTP_SERVER,
-    "SMTP_PORT": SMTP_PORT,
-    "SMTP_USER": SMTP_USER,
-    "SMTP_PASSWORD": SMTP_PASSWORD
-}.items():
-    if not value:
-        missing.append(key)
-
-if missing:
-    raise EnvironmentError(f"❌ Las siguientes variables de entorno no están definidas: {', '.join(missing)}")
+# DEBUG: imprimir variables de entorno
+print("DEBUG ENV VARS:")
+print("SMTP_SERVER:", repr(SMTP_SERVER))
+print("SMTP_PORT:", repr(SMTP_PORT))
+print("SMTP_USER:", repr(SMTP_USER))
+print("SMTP_PASSWORD:", repr(SMTP_PASSWORD))
 
 otp_storage = {}
 usuarios_validados = {}
@@ -51,7 +44,11 @@ def enviar_otp(destinatario, otp):
     msg = EmailMessage()
     msg.set_content(f"Tu código de verificación es: {otp}")
     msg["Subject"] = "Verificación de identidad"
-    msg["From"] = f"<{SMTP_USER.strip()}>"
+
+    if SMTP_USER is None:
+        raise ValueError("SMTP_USER está vacío o no definido")
+
+    msg["From"] = f"<{SMTP_USER}>"
     msg["To"] = destinatario.strip()
 
     try:
@@ -59,7 +56,7 @@ def enviar_otp(destinatario, otp):
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(SMTP_USER.strip(), SMTP_PASSWORD.strip())
+            server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
     except Exception as e:
         raise RuntimeError(f"Error enviando correo: {e}")

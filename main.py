@@ -21,6 +21,20 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
+# Validación de entorno SMTP
+missing = []
+for key, value in {
+    "SMTP_SERVER": SMTP_SERVER,
+    "SMTP_PORT": SMTP_PORT,
+    "SMTP_USER": SMTP_USER,
+    "SMTP_PASSWORD": SMTP_PASSWORD
+}.items():
+    if not value:
+        missing.append(key)
+
+if missing:
+    raise EnvironmentError(f"❌ Las siguientes variables de entorno no están definidas: {', '.join(missing)}")
+
 otp_storage = {}
 usuarios_validados = {}
 EXPIRACION_OTP = 300  # 5 minutos
@@ -39,12 +53,13 @@ def enviar_otp(destinatario, otp):
     msg["Subject"] = "Verificación de identidad"
     msg["From"] = f"<{SMTP_USER.strip()}>"
     msg["To"] = destinatario.strip()
+
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(SMTP_USER.strip(), SMTP_PASSWORD.strip())
             server.send_message(msg)
     except Exception as e:
         raise RuntimeError(f"Error enviando correo: {e}")

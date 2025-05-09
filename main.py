@@ -16,7 +16,6 @@ ADMANAGER_URL = os.getenv("ADMANAGER_URL")
 AUTH_TOKEN = os.getenv("ADMANAGER_TOKEN")
 DOMAIN_NAME = os.getenv("ADMANAGER_DOMAIN")
 
-# Ahora toma las variables SMTP desde el entorno (render.yaml)
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp-relay.brevo.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
@@ -38,12 +37,17 @@ def enviar_otp(destinatario, otp):
     msg = EmailMessage()
     msg.set_content(f"Tu código de verificación es: {otp}")
     msg["Subject"] = "Verificación de identidad"
-    msg["From"] = f"{SMTP_USER}"
-    msg["To"] = destinatario
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.send_message(msg)
+    msg["From"] = f"<{SMTP_USER}>"
+    msg["To"] = destinatario.strip()
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        raise RuntimeError(f"Error enviando correo: {e}")
 
 @app.get("/iniciar-mfa")
 def iniciar_mfa(usuario: str):
@@ -66,7 +70,7 @@ def iniciar_mfa(usuario: str):
                 "status": "error"
             })
 
-        correo = data["UsersList"][0].get("EMAIL_ADDRESS", "")
+        correo = data["UsersList"][0].get("EMAIL_ADDRESS", "").strip()
         if not correo:
             return JSONResponse(content={
                 "messages": [{"type": "to_user", "content": "❌ El usuario no tiene correo configurado."}],

@@ -19,6 +19,6 @@
       - key: SMTP_PORT
         value: "587"
       - key: SMTP_USER
-        value: 8c9a2e001@smtp-brevo.com
+        value: 8c9a2e002@smtp-brevo.com
       - key: SMTP_PASSWORD
-        value: 4f8xqO6HZzNnhcb0
+        value: DZKbrtjyWBfz0I29

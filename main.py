@@ -39,7 +39,7 @@ def enviar_otp(destinatario, otp):
     msg["Subject"] = "Verificación de identidad"
     msg["From"] = SMTP_USER
     msg["To"] = destinatario
-    with smtpllib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)

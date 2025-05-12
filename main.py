@@ -35,6 +35,50 @@ class VerificarOTP(BaseModel):
 
 class DesbloquearUsuarioRequest(BaseModel):
     usuario: str
+class HabilitarUsuarioRequest(BaseModel):
+    usuario: str
+
+@app.post("/habilitar-usuario")
+def habilitar_usuario(data: HabilitarUsuarioRequest):
+    usuario = data.usuario
+
+    if not usuarios_validados.get(usuario):
+        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
+
+    enable_url = ADMANAGER_URL.replace("/SearchUser", "/EnableUser")
+    payload = {
+        "AuthToken": AUTH_TOKEN,
+        "PRODUCT_NAME": "ADManager Plus",
+        "domainName": DOMAIN_NAME,
+        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    try:
+        response = requests.post(enable_url, data=payload, headers=headers, timeout=10)
+        result = response.json()
+
+        if isinstance(result, list) and result[0].get("status") == "1":
+            return JSONResponse(content={
+                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} habilitado correctamente."}],
+                "status": "ok"
+            })
+
+        mensaje_error = result[0].get("statusMessage", "Error desconocido").lower()
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": f"❌ No se pudo habilitar el usuario {usuario}. {mensaje_error}"}],
+            "status": "error"
+        })
+
+    except Exception as e:
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
+            "status": "error"
+        }, status_code=500)
+    
 
 def enviar_otp(destinatario, otp):
     msg = EmailMessage()

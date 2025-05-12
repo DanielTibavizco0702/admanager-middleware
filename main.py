@@ -72,7 +72,7 @@ def iniciar_mfa(usuario: str):
         "range": "1",
         "startIndex": "1",
         "filter": f"(sAMAccountName:equal:{usuario})",
-        "select": "mail"
+        "select": "mail,wWWHomePage"
     }
 
     try:

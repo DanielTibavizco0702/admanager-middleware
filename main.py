@@ -182,7 +182,6 @@ def buscar_usuario(usuario: str):
         "range": "1",
         "startIndex": "1",
         "filter": f"(sAMAccountName:equal:{usuario})",
-        //"select": "givenName,displayName"
     }
 
     try:

@@ -33,11 +33,12 @@ class VerificarOTP(BaseModel):
     usuario: str
     otp: str
 
-def enviar_otp(destinatarios, otp):
+def enviar_otp(destinatario, otp):
     msg = EmailMessage()
     msg.set_content(f"Tu código de verificación es: {otp}")
     msg["Subject"] = "Verificación de identidad"
     msg["From"] = SMTP_USER
+    msg["To"] = destinatario.strip()
 
     if not SMTP_USER or not SMTP_PASSWORD:
         raise ValueError("SMTP_USER o SMTP_PASSWORD no están definidos")
@@ -46,12 +47,22 @@ def enviar_otp(destinatarios, otp):
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
-            for destinatario in destinatarios:
-                if destinatario:
-                    msg["To"] = destinatario.strip()
-                    server.send_message(msg)
+            server.send_message(msg)
     except Exception as e:
         raise RuntimeError(f"Error enviando correo: {e}")
+
+def validar_password(password: str) -> bool:
+    if len(password) < 8:
+        return False
+    if not re.search(r"[A-Z]", password):
+        return False
+    if not re.search(r"[a-z]", password):
+        return False
+    if not re.search(r"[0-9]", password):
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False
+    return True
 
 @app.get("/iniciar-mfa")
 def iniciar_mfa(usuario: str):
@@ -61,7 +72,7 @@ def iniciar_mfa(usuario: str):
         "range": "1",
         "startIndex": "1",
         "filter": f"(sAMAccountName:equal:{usuario})",
-        "select": "mail,wWWHomePage"
+        "select": "mail"
     }
 
     try:
@@ -74,24 +85,19 @@ def iniciar_mfa(usuario: str):
                 "status": "error"
             })
 
-        user_info = data["UsersList"][0]
-        correo_corporativo = user_info.get("EMAIL_ADDRESS", "").strip()
-        correo_personal = user_info.get("WWW_HOME_PAGE", "").strip()
-
-        if not correo_corporativo and not correo_personal:
+        correo = data["UsersList"][0].get("EMAIL_ADDRESS", "").strip()
+        if not correo:
             return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": "❌ El usuario no tiene correos configurados."}],
+                "messages": [{"type": "to_user", "content": "❌ El usuario no tiene correo configurado."}],
                 "status": "error"
             })
 
-        destinatarios = list(filter(None, [correo_corporativo, correo_personal]))
-
         otp = str(random.randint(100000, 999999))
         otp_storage[usuario] = {"otp": otp, "timestamp": time.time()}
-        enviar_otp(destinatarios, otp)
+        enviar_otp(correo, otp)
 
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": "📧 Se ha enviado un código de verificación a tus correos."}],
+            "messages": [{"type": "to_user", "content": "📧 Se ha enviado un código de verificación a tu correo."}],
             "status": "otp_enviado"
         })
 

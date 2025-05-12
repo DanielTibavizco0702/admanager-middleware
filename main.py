@@ -168,7 +168,7 @@ def cambiar_password(data: CambioPasswordRequest):
 
     if not validar_password(nueva_password):
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": "❌ La contraseña no cumple con los requisitos de seguridad. Debe tener al menos 8 caracteres, una letra mayúscula, una minúscula, un número y un carácter especial."}],
+            "messages": [{"type": "to_user", "content": "❌ La contraseña insegura"}],
             "status": "error"
         })
 

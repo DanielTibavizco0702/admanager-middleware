@@ -202,13 +202,23 @@ def buscar_usuario(usuario: str):
         # print(json.dumps(user, indent=2))
 
         return JSONResponse(content={
-            "messages": [
-                {
-                    "type": "to_user",
-                    "content": f"✅ Usuario encontrado:\n\n👤 Nombre: {user.get('FIRST_NAME', '')} {user.get('LAST_NAME', '')}\n📧 Correo: {user.get('EMAIL_ADDRESS', '')}\n📍 Ciudad: {user.get('CITY', '')}"
-                }
-            ]
-        })
+    "messages": [
+        {
+            "type": "to_user",
+            "content": (
+                f"✅ Usuario encontrado:\n\n"
+                f"👤 Nombre: {user.get('FIRST_NAME', '')} {user.get('LAST_NAME', '')}\n"
+                f"📛 Display Name: {user.get('DISPLAY_NAME', '')}\n"
+                f"📧 Correo: {user.get('EMAIL_ADDRESS', '')}\n"
+                f"📍 Ciudad: {user.get('CITY', '')}\n"
+                f"🏢 Unidad Organizativa: {user.get('OU_NAME', '')}\n"
+                f"📱 Teléfono: {user.get('MOBILE', '-')}\n"
+                f"🆔 GUID: {user.get('OBJECT_GUID', '')}\n"
+                f"🔑 UPN: {user.get('userPrincipalName', user.get('LOGON_NAME', ''))}"
+            )
+        }
+    ]
+})
 
     except Exception as e:
         return JSONResponse(content={

@@ -44,23 +44,19 @@ def enviar_otp(destinatario, otp):
     msg = EmailMessage()
     msg.set_content(f"Tu código de verificación es: {otp}")
     msg["Subject"] = "Verificación de identidad"
-
-    if SMTP_USER is None:
-        raise ValueError("SMTP_USER está vacío o no definido")
-
-    msg["From"] = f"<{SMTP_USER}>"
+    msg["From"] = SMTP_USER
     msg["To"] = destinatario.strip()
+
+    if not SMTP_USER or not SMTP_PASSWORD:
+        raise ValueError("SMTP_USER o SMTP_PASSWORD no están definidos")
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.ehlo()
             server.starttls()
-            server.ehlo()
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
     except Exception as e:
         raise RuntimeError(f"Error enviando correo: {e}")
-
 @app.get("/iniciar-mfa")
 def iniciar_mfa(usuario: str):
     params = {

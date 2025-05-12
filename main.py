@@ -32,54 +32,10 @@ class CambioPasswordRequest(BaseModel):
 class VerificarOTP(BaseModel):
     usuario: str
     otp: str
-
-class DesbloquearUsuarioRequest(BaseModel):
-    usuario: str
+    
 class HabilitarUsuarioRequest(BaseModel):
     usuario: str
-
-@app.post("/habilitar-usuario")
-def habilitar_usuario(data: HabilitarUsuarioRequest):
-    usuario = data.usuario
-
-    if not usuarios_validados.get(usuario):
-        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
-
-    enable_url = ADMANAGER_URL.replace("/SearchUser", "/EnableUser")
-    payload = {
-        "AuthToken": AUTH_TOKEN,
-        "PRODUCT_NAME": "ADManager Plus",
-        "domainName": DOMAIN_NAME,
-        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
-    }
-
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-
-    try:
-        response = requests.post(enable_url, data=payload, headers=headers, timeout=10)
-        result = response.json()
-
-        if isinstance(result, list) and result[0].get("status") == "1":
-            return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} habilitado correctamente."}],
-                "status": "ok"
-            })
-
-        mensaje_error = result[0].get("statusMessage", "Error desconocido").lower()
-        return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": f"❌ No se pudo habilitar el usuario {usuario}. {mensaje_error}"}],
-            "status": "error"
-        })
-
-    except Exception as e:
-        return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
-            "status": "error"
-        }, status_code=500)
     
-
 def enviar_otp(destinatario, otp):
     msg = EmailMessage()
     msg.set_content(f"Tu código de verificación es: {otp}")
@@ -107,7 +63,7 @@ def validar_password(password: str) -> bool:
         return False
     if not re.search(r"[0-9]", password):
         return False
-    if not re.search(r"[!@#$%^&*(),.?":{}|<>]", password):
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
         return False
     return True
 
@@ -172,6 +128,49 @@ def verificar_otp(data: VerificarOTP):
 
     return {"status": "ok", "mensaje": "✅ Verificación exitosa. Puedes continuar."}
 
+@app.post("/habilitar-usuario")
+def habilitar_usuario(data: HabilitarUsuarioRequest):
+    usuario = data.usuario
+
+    if not usuarios_validados.get(usuario):
+        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
+
+    enable_url = ADMANAGER_URL.replace("/SearchUser", "/EnableUser")
+    payload = {
+        "AuthToken": AUTH_TOKEN,
+        "PRODUCT_NAME": "ADManager Plus",
+        "domainName": DOMAIN_NAME,
+        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
+    }
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    try:
+        response = requests.post(enable_url, data=payload, headers=headers, timeout=10)
+        result = response.json()
+
+        if isinstance(result, list) and result[0].get("status") == "1":
+            return JSONResponse(content={
+                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} habilitado correctamente."}],
+                "status": "ok"
+            })
+
+        mensaje_error = result[0].get("statusMessage", "Error desconocido").lower()
+        mensaje = f"❌ No se pudo habilitar el usuario {usuario}. {mensaje_error}"
+
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": mensaje}],
+            "status": "error"
+        })
+
+    except Exception as e:
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
+            "status": "error"
+        }, status_code=500)
+
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):
     if not usuarios_validados.get(usuario):
@@ -197,10 +196,7 @@ def buscar_usuario(usuario: str):
 
         user = data["UsersList"][0]
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": f"✅ Usuario encontrado:
-
-👤 Nombre: {user.get('FIRST_NAME', '')}
-📛 Display Name: {user.get('DISPLAY_NAME', '')}"}]
+            "messages": [{"type": "to_user", "content": f"✅ Usuario encontrado:\n\n👤 Nombre: {user.get('FIRST_NAME', '')}\n📛 Display Name: {user.get('DISPLAY_NAME', '')}"}]
         })
 
     except Exception as e:
@@ -263,45 +259,3 @@ def cambiar_password(data: CambioPasswordRequest):
             "status": "error"
         }, status_code=500)
 
-@app.post("/desbloquear-usuario")
-def desbloquear_usuario(data: DesbloquearUsuarioRequest):
-    usuario = data.usuario
-
-    if not usuarios_validados.get(usuario):
-        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
-
-    unlock_url = ADMANAGER_URL.replace("/SearchUser", "/UnlockUser")
-    payload = {
-        "AuthToken": AUTH_TOKEN,
-        "PRODUCT_NAME": "ADManager Plus",
-        "domainName": DOMAIN_NAME,
-        "inputFormat": json.dumps([{"sAMAccountName": usuario}])
-    }
-
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-
-    try:
-        response = requests.post(unlock_url, data=payload, headers=headers, timeout=10)
-        result = response.json()
-
-        if isinstance(result, list) and result[0].get("status") == "1":
-            return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} desbloqueado correctamente."}],
-                "status": "ok"
-            })
-
-        mensaje_error = result[0].get("statusMessage", "").lower()
-        mensaje = f"❌ No se pudo desbloquear el usuario {usuario}. {mensaje_error}"
-
-        return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": mensaje}],
-            "status": "error"
-        })
-
-    except Exception as e:
-        return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
-            "status": "error"
-        }, status_code=500)

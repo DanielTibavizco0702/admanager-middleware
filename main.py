@@ -174,15 +174,17 @@ def habilitar_usuario(data: HabilitarUsuarioRequest):
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):
     if not usuarios_validados.get(usuario):
-        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]
+        }, status_code=403)
 
+    # NO usamos el campo select
     params = {
         "domainName": DOMAIN_NAME,
         "AuthToken": AUTH_TOKEN,
         "range": "1",
         "startIndex": "1",
-        "filter": f"(sAMAccountName:equal:{usuario})",
-        "select": "givenName,displayName"
+        "filter": f"(sAMAccountName:equal:{usuario})"
     }
 
     try:
@@ -195,8 +197,17 @@ def buscar_usuario(usuario: str):
             })
 
         user = data["UsersList"][0]
+
+        # Puedes imprimir para debugging si quieres:
+        # print(json.dumps(user, indent=2))
+
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": f"✅ Usuario encontrado:\n\n👤 Nombre: {user.get('FIRST_NAME', '')}\n📛 Display Name: {user.get('DISPLAY_NAME', '')}"}]
+            "messages": [
+                {
+                    "type": "to_user",
+                    "content": f"✅ Usuario encontrado:\n\n👤 Nombre: {user.get('FIRST_NAME', '')} {user.get('LAST_NAME', '')}\n📧 Correo: {user.get('EMAIL_ADDRESS', '')}\n📍 Ciudad: {user.get('CITY', '')}"
+                }
+            ]
         })
 
     except Exception as e:

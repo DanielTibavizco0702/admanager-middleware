@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -9,6 +8,7 @@ import os
 import json
 import random
 import time
+import re
 
 app = FastAPI()
 
@@ -20,13 +20,6 @@ SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp-relay.brevo.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-
-# DEBUG: imprimir variables de entorno
-print("DEBUG ENV VARS:")
-print("SMTP_SERVER:", repr(SMTP_SERVER))
-print("SMTP_PORT:", repr(SMTP_PORT))
-print("SMTP_USER:", repr(SMTP_USER))
-print("SMTP_PASSWORD:", repr(SMTP_PASSWORD))
 
 otp_storage = {}
 usuarios_validados = {}
@@ -57,6 +50,20 @@ def enviar_otp(destinatario, otp):
             server.send_message(msg)
     except Exception as e:
         raise RuntimeError(f"Error enviando correo: {e}")
+
+def validar_password(password: str) -> bool:
+    if len(password) < 8:
+        return False
+    if not re.search(r"[A-Z]", password):
+        return False
+    if not re.search(r"[a-z]", password):
+        return False
+    if not re.search(r"[0-9]", password):
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False
+    return True
+
 @app.get("/iniciar-mfa")
 def iniciar_mfa(usuario: str):
     params = {
@@ -154,10 +161,17 @@ def buscar_usuario(usuario: str):
 @app.post("/cambiar-password")
 def cambiar_password(data: CambioPasswordRequest):
     usuario = data.usuario
+    nueva_password = data.nueva_password
+
     if not usuarios_validados.get(usuario):
         return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
 
-    nueva_password = data.nueva_password
+    if not validar_password(nueva_password):
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": "❌ La contraseña no cumple con los requisitos de seguridad. Debe tener al menos 8 caracteres, una letra mayúscula, una minúscula, un número y un carácter especial."}],
+            "status": "error"
+        })
+
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
 
     payload = {

@@ -33,7 +33,7 @@ class VerificarOTP(BaseModel):
     usuario: str
     otp: str
     
-class DesbloquearUsuarioRequest(BaseModel):
+class HabilitarUsuarioRequest(BaseModel):
     usuario: str
     
 def enviar_otp(destinatario, otp):
@@ -128,20 +128,18 @@ def verificar_otp(data: VerificarOTP):
 
     return {"status": "ok", "mensaje": "✅ Verificación exitosa. Puedes continuar."}
 
-@app.post("/desbloquear-usuario")
-def desbloquear_usuario(data: DesbloquearUsuarioRequest):
+@app.post("/habilitar-usuario")
+def habilitar_usuario(data: HabilitarUsuarioRequest):
     usuario = data.usuario
 
     if not usuarios_validados.get(usuario):
-        return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]
-        }, status_code=403)
+        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
 
-    unlock_url = "https://proyecto.melabs.tech:8443/RestAPI/UnlockUser"
+    enable_url = ADMANAGER_URL.replace("/SearchUser", "/EnableUser")
     payload = {
-        "AuthToken": "d894b0a9-7c9a-4c89-85e6-4cc97fa695ed",  # ✅ Token correcto
-        "PRODUCT_NAME": "proyecto.melabs.tech:8443",
-        "domainName": "cybersex.com",
+        "AuthToken": AUTH_TOKEN,
+        "PRODUCT_NAME": "ADManager Plus",
+        "domainName": DOMAIN_NAME,
         "inputFormat": json.dumps([{"sAMAccountName": usuario}])
     }
 
@@ -150,18 +148,20 @@ def desbloquear_usuario(data: DesbloquearUsuarioRequest):
     }
 
     try:
-        response = requests.post(unlock_url, data=payload, headers=headers, timeout=10)
+        response = requests.post(enable_url, data=payload, headers=headers, timeout=10)
         result = response.json()
 
         if isinstance(result, list) and result[0].get("status") == "1":
             return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} desbloqueado correctamente."}],
+                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} habilitado correctamente."}],
                 "status": "ok"
             })
 
-        mensaje_error = result[0].get("statusMessage", "").lower()
+        mensaje_error = result[0].get("statusMessage", "Error desconocido").lower()
+        mensaje = f"❌ No se pudo habilitar el usuario {usuario}. {mensaje_error}"
+
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": f"❌ No se pudo desbloquear el usuario {usuario}. {mensaje_error}"}],
+            "messages": [{"type": "to_user", "content": mensaje}],
             "status": "error"
         })
 
@@ -279,4 +279,3 @@ def cambiar_password(data: CambioPasswordRequest):
             "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
             "status": "error"
         }, status_code=500)
-

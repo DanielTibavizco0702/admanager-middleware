@@ -240,6 +240,7 @@ def cambiar_password(data: CambioPasswordRequest):
         })
 
     reset_url = ADMANAGER_URL.replace("/SearchUser", "/ResetPwd")
+
     payload = {
         "AuthToken": AUTH_TOKEN,
         "PRODUCT_NAME": "ADManager Plus",
@@ -263,7 +264,11 @@ def cambiar_password(data: CambioPasswordRequest):
             })
 
         mensaje_error = result[0].get("statusMessage", "").lower()
-        mensaje = f"❌ Error al cambiar la contraseña para el usuario {usuario}. {mensaje_error}"
+        if "no such user matched" in mensaje_error:
+            mensaje = f"❌ Error al cambiar la contraseña para el usuario {usuario}. Verifica el nombre o contacta a soporte."
+        else:
+            mensaje = "❌ Error al cambiar la contraseña. Inténtalo de nuevo o contacta a soporte."
+
         return JSONResponse(content={
             "messages": [{"type": "to_user", "content": mensaje}],
             "status": "error"
@@ -274,4 +279,3 @@ def cambiar_password(data: CambioPasswordRequest):
             "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
             "status": "error"
         }, status_code=500)
-

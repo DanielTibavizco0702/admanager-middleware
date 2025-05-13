@@ -33,7 +33,7 @@ class VerificarOTP(BaseModel):
     usuario: str
     otp: str
     
-class HabilitarUsuarioRequest(BaseModel):
+class DesbloquearUsuarioRequest(BaseModel):
     usuario: str
     
 def enviar_otp(destinatario, otp):
@@ -128,18 +128,20 @@ def verificar_otp(data: VerificarOTP):
 
     return {"status": "ok", "mensaje": "✅ Verificación exitosa. Puedes continuar."}
 
-@app.post("/habilitar-usuario")
-def habilitar_usuario(data: HabilitarUsuarioRequest):
+@app.post("/desbloquear-usuario")
+def desbloquear_usuario(data: DesbloquearUsuarioRequest):
     usuario = data.usuario
 
     if not usuarios_validados.get(usuario):
-        return JSONResponse(content={"messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]}, status_code=403)
+        return JSONResponse(content={
+            "messages": [{"type": "to_user", "content": "🔒 No verificado. Inicia sesión primero."}]
+        }, status_code=403)
 
-    enable_url = ADMANAGER_URL.replace("/SearchUser", "/EnableUser")
+    unlock_url = "https://proyecto.melabs.tech:8443/RestAPI/UnlockUser"
     payload = {
-        "AuthToken": AUTH_TOKEN,
-        "PRODUCT_NAME": "ADManager Plus",
-        "domainName": DOMAIN_NAME,
+        "AuthToken": "acbbc9ca-ad78-4339-8ce3-777a4cfb7523",
+        "PRODUCT_NAME": "proyecto.melabs.tech:8443",
+        "domainName": "cybersex.com",
         "inputFormat": json.dumps([{"sAMAccountName": usuario}])
     }
 
@@ -148,20 +150,18 @@ def habilitar_usuario(data: HabilitarUsuarioRequest):
     }
 
     try:
-        response = requests.post(enable_url, data=payload, headers=headers, timeout=10)
+        response = requests.post(unlock_url, data=payload, headers=headers, timeout=10)
         result = response.json()
 
         if isinstance(result, list) and result[0].get("status") == "1":
             return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} habilitado correctamente."}],
+                "messages": [{"type": "to_user", "content": f"✅ Usuario {usuario} desbloqueado correctamente."}],
                 "status": "ok"
             })
 
-        mensaje_error = result[0].get("statusMessage", "Error desconocido").lower()
-        mensaje = f"❌ No se pudo habilitar el usuario {usuario}. {mensaje_error}"
-
+        mensaje_error = result[0].get("statusMessage", "").lower()
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": mensaje}],
+            "messages": [{"type": "to_user", "content": f"❌ No se pudo desbloquear el usuario {usuario}. {mensaje_error}"}],
             "status": "error"
         })
 
@@ -170,6 +170,7 @@ def habilitar_usuario(data: HabilitarUsuarioRequest):
             "messages": [{"type": "to_user", "content": f"⚠️ Error del servidor: {str(e)}"}],
             "status": "error"
         }, status_code=500)
+
 
 @app.get("/buscar-usuario")
 def buscar_usuario(usuario: str):

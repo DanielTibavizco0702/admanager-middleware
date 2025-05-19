@@ -82,25 +82,28 @@ def iniciar_mfa(usuario: str):
         response = requests.get(ADMANAGER_URL, params=params, timeout=10)
         data = response.json()
 
+        # ✅ Validar si el usuario existe
         if data.get("count", 0) == 0 or data.get("status") != "SUCCESS":
             return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": "❌ Usuario no encontrado."}],
+                "messages": [{"type": "to_user", "content": "❌ El usuario no existe en el dominio. Verifica tu nombre de usuario e intenta nuevamente."}],
                 "status": "error"
             })
 
+        # ✅ Validar si tiene correo
         correo = data["UsersList"][0].get("EMAIL_ADDRESS", "").strip()
         if not correo:
             return JSONResponse(content={
-                "messages": [{"type": "to_user", "content": "❌ El usuario no tiene correo configurado."}],
+                "messages": [{"type": "to_user", "content": "❌ El usuario no tiene un correo electrónico configurado. Contacta al administrador."}],
                 "status": "error"
             })
 
+        # ✅ Enviar OTP
         otp = str(random.randint(100000, 999999))
         otp_storage[usuario] = {"otp": otp, "timestamp": time.time()}
         enviar_otp(correo, otp)
 
         return JSONResponse(content={
-            "messages": [{"type": "to_user", "content": "📧 Se ha enviado un código de verificación a tu correo."}],
+            "messages": [{"type": "to_user", "content": "📧 Se ha enviado un código de verificación a tu correo electrónico."}],
             "status": "otp_enviado"
         })
 
